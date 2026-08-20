@@ -11,16 +11,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
+
       - name: Install dependencies
-        run: npm install   # BUG 1 — should be npm ci
+        # FIX: npm ci uses the committed lockfile for reproducible CI installs.
+        run: npm ci
 
   test:
     runs-on: ubuntu-latest
-    # BUG 2 — missing needs: install, so test runs in parallel with install
-    # BUG 3 — no checkout or npm ci step, so node_modules is empty on this fresh machine
+    needs: install
+
     steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        # FIX: GitHub Actions jobs use separate machines, so the test job
+        # must install its own dependencies even though it waits for install.
+        run: npm ci
+
       - name: Run tests
         run: npm test
+
